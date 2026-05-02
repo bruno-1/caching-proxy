@@ -1,6 +1,6 @@
 import type { StartServerInput } from '../ports/input/start-server-input.js';
 import type { CachingProxyServer } from '../ports/output/caching-proxy-server.js';
-import type { StartServerParams } from './dtos/start-server-params.dto.js';
+import type { StartServerParams } from '../dtos/start-server-params.dto.js';
 import { Port } from '../../domain/value-objects/port.js';
 import { OriginUrl } from '../../domain/value-objects/origin-url.js';
 
