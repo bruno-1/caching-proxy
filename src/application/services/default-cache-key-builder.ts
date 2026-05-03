@@ -5,7 +5,8 @@ export class DefaultCacheKeyBuilder implements CacheKeyBuilder {
   build(request: HttpRequest): string {
     const path = this.normalizePath(request.path);
 
-    if (!request?.query || !(Object.keys(request?.query).length > 0)) return path;
+    if (!request?.query || !(Object.keys(request?.query).length > 0))
+      return path;
 
     const normalized = this.normalizeQuery(request?.query);
     const query = new URLSearchParams(normalized).toString();
