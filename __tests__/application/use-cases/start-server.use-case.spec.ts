@@ -6,85 +6,81 @@ import { InvalidOriginUrlError } from '../../../src/domain/errors/invalid-origin
 import { StartServerInput } from '../../../src/application/ports/input/start-server-input.js';
 
 describe('StartServerUseCase', () => {
-  let serverMock: CachingProxyServer;
+  let server: CachingProxyServer;
   let useCase: StartServerUseCase;
 
-  const expectFailure = async (
-    input: StartServerInput,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    error: new (...args: any[]) => Error,
-  ) => {
-    await expect(useCase.execute(input)).rejects.toBeInstanceOf(error);
-    expect(serverMock.start).not.toHaveBeenCalled();
+  const baseInput: StartServerInput = {
+    port: 3000,
+    originUrl: 'http://dummyjson.com',
   };
 
-  beforeEach(() => {
-    serverMock = {
+  const makeSut = () => {
+    server = {
       start: vi.fn().mockResolvedValue(undefined),
     };
 
-    useCase = new StartServerUseCase(serverMock);
+    useCase = new StartServerUseCase(server);
+  };
+
+  beforeEach(() => {
+    makeSut();
   });
 
-  it('should create value objects and pass them to server', async () => {
-    await useCase.execute({
-      port: 3000,
-      originUrl: 'http://dummyjson.com',
-    });
+  const invalidCases: Array<{
+    name: string;
+    input: StartServerInput;
+    error: new (...args: ConstructorParameters<typeof Error>) => Error;
+  }> = [
+    {
+      name: 'port is not an integer',
+      input: { ...baseInput, port: 3000.1 },
+      error: InvalidPortError,
+    },
+    {
+      name: 'port is below range',
+      input: { ...baseInput, port: 0 },
+      error: InvalidPortError,
+    },
+    {
+      name: 'port is above range',
+      input: { ...baseInput, port: 65536 },
+      error: InvalidPortError,
+    },
+    {
+      name: 'originUrl is invalid',
+      input: { ...baseInput, originUrl: 'invalid-url' },
+      error: InvalidOriginUrlError,
+    },
+    {
+      name: 'protocol is not HTTP/HTTPS',
+      input: { ...baseInput, originUrl: 'ftp://dummyjson.com' },
+      error: InvalidOriginUrlError,
+    },
+  ];
 
-    expect(serverMock.start).toHaveBeenCalledOnce();
+  it('should start server with value objects', async () => {
+    await useCase.execute(baseInput);
 
-    const [params] = vi.mocked(serverMock.start).mock.calls[0];
+    expect(server.start).toHaveBeenCalledTimes(1);
+
+    const [params] = vi.mocked(server.start).mock.calls[0];
 
     expect(params.port.value).toBe(3000);
     expect(params.originUrl.value).toBe('http://dummyjson.com/');
   });
 
-  it('should throw error when port is not an integer', async () => {
-    await expectFailure(
-      { port: 3000.1, originUrl: 'http://dummyjson.com' },
-      InvalidPortError,
-    );
-  });
-
-  it('should throw error when port is below range', async () => {
-    await expectFailure(
-      { port: 0, originUrl: 'http://dummyjson.com' },
-      InvalidPortError,
-    );
-  });
-
-  it('should throw error when port is above range', async () => {
-    await expectFailure(
-      { port: 65536, originUrl: 'http://dummyjson.com' },
-      InvalidPortError,
-    );
-  });
-
-  it('should throw error when origin is invalid', async () => {
-    await expectFailure(
-      { port: 3000, originUrl: 'invalid-url' },
-      InvalidOriginUrlError,
-    );
-  });
-
-  it('should throw error when protocol is not HTTP/HTTPS', async () => {
-    await expectFailure(
-      { port: 3000, originUrl: 'ftp://dummyjson.com' },
-      InvalidOriginUrlError,
-    );
+  it.each(invalidCases)('should throw $name', async ({ input, error }) => {
+    await expect(useCase.execute(input)).rejects.toBeInstanceOf(error);
+    expect(server.start).not.toHaveBeenCalled();
   });
 
   it('should propagate error if server fails', async () => {
-    const error = new Error('Server failed');
+    const failure = new Error('Server failed');
 
-    serverMock.start = vi.fn().mockRejectedValue(error);
+    server.start = vi.fn().mockRejectedValue(failure);
 
-    await expect(
-      useCase.execute({
-        port: 3000,
-        originUrl: 'http://dummyjson.com',
-      }),
-    ).rejects.toBeInstanceOf(Error);
+    await expect(useCase.execute(baseInput)).rejects.toThrow('Server failed');
+
+    expect(server.start).toHaveBeenCalledTimes(1);
   });
 });
