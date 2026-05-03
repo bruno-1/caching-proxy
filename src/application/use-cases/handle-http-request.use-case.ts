@@ -1,3 +1,5 @@
+import { compactObject } from '../../shared/utils/compact-object.js';
+import type { CachePolicy } from '../policies/cache-policy.js';
 import type { HttpRequest, HttpResponse } from '../ports/http.js';
 import type { CacheKeyBuilder } from '../ports/output/cache-key-builder.js';
 import type { Cache } from '../ports/output/cache.js';
@@ -8,6 +10,7 @@ export class HandleHttpRequest {
     private readonly cache: Cache,
     private readonly httpClient: HttpClient,
     private readonly cacheKeyBuilder: CacheKeyBuilder,
+    private readonly cachePolicy: CachePolicy<HttpResponse>,
   ) {}
 
   async execute(request: HttpRequest): Promise<HttpResponse> {
@@ -19,21 +22,36 @@ export class HandleHttpRequest {
       return {
         ...cached,
         headers: {
-          ...cached.headers,
+          ...(cached.headers ?? {}),
           'X-Cache': 'HIT',
         },
       };
 
     const response = await this.httpClient.get(request);
 
-    const isSuccess = response.statusCode >= 200 && response.statusCode < 300;
+    const policy = this.cachePolicy.for(request);
+    if (policy.skipIf?.(response))
+      return {
+        ...response,
+        headers: {
+          ...(response.headers ?? {}),
+          'X-Cache': 'MISS',
+        },
+      };
 
-    if (isSuccess) await this.cache.set(key, response);
+    const cacheOptions = compactObject({
+      ttlSeconds: policy.ttlSeconds,
+      tags: policy.tags,
+    });
+    const finalOptions =
+      Object.keys(cacheOptions).length > 0 ? cacheOptions : undefined;
+
+    await this.cache.set(key, response, finalOptions);
 
     return {
       ...response,
       headers: {
-        ...response.headers,
+        ...(response.headers ?? {}),
         'X-Cache': 'MISS',
       },
     };

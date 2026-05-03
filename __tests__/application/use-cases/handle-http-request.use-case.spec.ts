@@ -3,19 +3,27 @@ import { HandleHttpRequest } from '../../../src/application/use-cases/handle-htt
 import { createCacheMock } from '../../factories/cache-mock.js';
 import { createHttpClientMock } from '../../factories/http-client-mock.js';
 import { createCacheKeyBuilderMock } from '../../factories/cache-key-builder-mock.js';
+import { createCachePolicyMock } from '../../factories/cache-policy-mock.js';
 
 describe('HandleHttpRequest', () => {
   let cache: ReturnType<typeof createCacheMock>;
   let httpClient: ReturnType<typeof createHttpClientMock>;
   let cacheKeyBuilder: ReturnType<typeof createCacheKeyBuilderMock>;
+  let cachePolicy: ReturnType<typeof createCachePolicyMock>;
   let useCase: HandleHttpRequest;
 
   beforeEach(() => {
     cache = createCacheMock();
     httpClient = createHttpClientMock();
     cacheKeyBuilder = createCacheKeyBuilderMock();
+    cachePolicy = createCachePolicyMock();
 
-    useCase = new HandleHttpRequest(cache, httpClient, cacheKeyBuilder);
+    useCase = new HandleHttpRequest(
+      cache,
+      httpClient,
+      cacheKeyBuilder,
+      cachePolicy,
+    );
   });
 
   it('should return cached response when HIT', async () => {
@@ -39,6 +47,10 @@ describe('HandleHttpRequest', () => {
   it('should fetch from origin and cache on MISS', async () => {
     cache.get.mockResolvedValue(null);
 
+    cachePolicy.for.mockReturnValue({
+      ttlSeconds: 60,
+    });
+
     httpClient.get.mockResolvedValue({
       statusCode: 200,
       headers: { 'content-type': 'application/json' },
@@ -50,13 +62,23 @@ describe('HandleHttpRequest', () => {
     });
 
     expect(httpClient.get).toHaveBeenCalled();
-    expect(cache.set).toHaveBeenCalledWith('cache-key', expect.any(Object));
+
+    expect(cache.set).toHaveBeenCalledWith(
+      'cache-key',
+      expect.any(Object),
+      expect.objectContaining({ ttlSeconds: 60 }),
+    );
 
     expect(result.headers['X-Cache']).toBe('MISS');
   });
 
-  it('should NOT cache failed responses', async () => {
+  it('should NOT cache when skipIf returns true', async () => {
     cache.get.mockResolvedValue(null);
+
+    cachePolicy.for.mockReturnValue({
+      ttlSeconds: 60,
+      skipIf: () => true,
+    });
 
     httpClient.get.mockResolvedValue({
       statusCode: 500,
@@ -74,6 +96,10 @@ describe('HandleHttpRequest', () => {
   it('should use cacheKeyBuilder to generate key', async () => {
     cache.get.mockResolvedValue(null);
 
+    cachePolicy.for.mockReturnValue({
+      ttlSeconds: 60,
+    });
+
     httpClient.get.mockResolvedValue({
       statusCode: 200,
       headers: {},
@@ -87,5 +113,43 @@ describe('HandleHttpRequest', () => {
     expect(cacheKeyBuilder.build).toHaveBeenCalledWith({
       path: '/products',
     });
+  });
+
+  it('should not pass cache options when empty', async () => {
+    cache.get.mockResolvedValue(null);
+
+    cachePolicy.for.mockReturnValue({});
+
+    httpClient.get.mockResolvedValue({
+      statusCode: 200,
+      headers: {},
+      body: {},
+    });
+
+    await useCase.execute({ path: '/products' });
+
+    expect(cache.set).toHaveBeenCalledWith(
+      'cache-key',
+      expect.any(Object),
+      undefined,
+    );
+  });
+
+  it('should cache when skipIf is not defined', async () => {
+    cache.get.mockResolvedValue(null);
+
+    cachePolicy.for.mockReturnValue({
+      ttlSeconds: 60,
+    });
+
+    httpClient.get.mockResolvedValue({
+      statusCode: 200,
+      headers: {},
+      body: {},
+    });
+
+    await useCase.execute({ path: '/products' });
+
+    expect(cache.set).toHaveBeenCalled();
   });
 });
