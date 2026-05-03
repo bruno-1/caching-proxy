@@ -5,9 +5,9 @@ export class DefaultCacheKeyBuilder implements CacheKeyBuilder {
   build(request: HttpRequest): string {
     const path = this.normalizePath(request.path);
 
-    if (!request.query) return path;
+    if (!request?.query || !(Object.keys(request?.query).length > 0)) return path;
 
-    const normalized = this.normalizeQuery(request.query);
+    const normalized = this.normalizeQuery(request?.query);
     const query = new URLSearchParams(normalized).toString();
 
     return `${path}?${query}`;
@@ -18,7 +18,7 @@ export class DefaultCacheKeyBuilder implements CacheKeyBuilder {
   }
 
   private normalizeQuery(
-    query: Record<string, string | string[]>,
+    query: Record<string, string | string[] | undefined>,
   ): [string, string][] {
     return Object.entries(query)
       .reduce<[string, string][]>((acc, [key, value]) => {

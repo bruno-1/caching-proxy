@@ -1,6 +1,6 @@
 export type HttpRequest = {
   path: string;
-  query?: Record<string, string | string[]>;
+  query?: Record<string, string | string[] | undefined>;
 };
 
 export type HttpResponse = {
