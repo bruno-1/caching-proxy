@@ -1,54 +1,56 @@
 import { describe, it, expect } from 'vitest';
 import { DefaultCachePolicy } from '../../../src/application/policies/default-cache-policy.js';
 
+const makeSut = (ttl = 60) => {
+  const policy = new DefaultCachePolicy({ defaultTTLSeconds: ttl });
+  const rule = policy.for({ path: '/products' });
+
+  return { policy, rule };
+};
+
+const makeResponse = (statusCode: number) => ({
+  statusCode,
+  headers: {},
+  body: {},
+});
+
 describe('DefaultCachePolicy', () => {
-  it('should return TTL from config', () => {
-    const policy = new DefaultCachePolicy({ defaultTTLSeconds: 120 });
+  describe('ttlSeconds', () => {
+    it('should return TTL defined in configuration', () => {
+      const { rule } = makeSut(120);
 
-    const result = policy.for({ path: '/test' });
-
-    expect(result.ttlSeconds).toBe(120);
+      expect(rule.ttlSeconds).toBe(120);
+    });
   });
 
-  it('should skip cache for server error responses (>= 500)', () => {
-    const policy = new DefaultCachePolicy({ defaultTTLSeconds: 60 });
+  describe('skipIf', () => {
+    it('should be defined', () => {
+      const { rule } = makeSut();
 
-    const result = policy.for({ path: '/test' });
-
-    const shouldSkip = result.skipIf?.({
-      statusCode: 500,
-      headers: {},
-      body: {},
+      expect(rule.skipIf).toBeTypeOf('function');
     });
 
-    expect(shouldSkip).toBe(true);
-  });
+    describe('when response status is >= 500', () => {
+      it('should skip cache', () => {
+        const { rule } = makeSut();
 
-  it('should NOT skip cache for successful responses (< 500)', () => {
-    const policy = new DefaultCachePolicy({ defaultTTLSeconds: 60 });
+        const shouldSkip = rule.skipIf!(makeResponse(500));
 
-    const result = policy.for({ path: '/test' });
-
-    const shouldSkip = result.skipIf?.({
-      statusCode: 200,
-      headers: {},
-      body: {},
+        expect(shouldSkip).toBe(true);
+      });
     });
 
-    expect(shouldSkip).toBe(false);
-  });
+    describe('when response status is < 500', () => {
+      it.each([200, 201, 204, 400, 404])(
+        'should NOT skip cache for status %i',
+        (status) => {
+          const { rule } = makeSut();
 
-  it('should NOT skip cache for client error responses (< 500)', () => {
-    const policy = new DefaultCachePolicy({ defaultTTLSeconds: 60 });
+          const shouldSkip = rule.skipIf!(makeResponse(status));
 
-    const result = policy.for({ path: '/test' });
-
-    const shouldSkip = result.skipIf?.({
-      statusCode: 404,
-      headers: {},
-      body: {},
+          expect(shouldSkip).toBe(false);
+        },
+      );
     });
-
-    expect(shouldSkip).toBe(false);
   });
 });
