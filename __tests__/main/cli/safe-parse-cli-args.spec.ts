@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import * as cliModule from '../../src/main/cli/cli.js';
-import { safeParseCliArgs } from '../../src/main/cli/safe-parse-cli-args';
 import { CommanderError } from 'commander';
-import { CliParseError } from '../../src/main/cli/errors/cli-parse.error.js';
+import * as cliModule from '../../../src/main/cli/cli.js';
+import { safeParseCliArgs } from '../../../src/main/cli/safe-parse-cli-args.js';
+import { CliParseError } from '../../../src/main/cli/errors/cli-parse.error.js';
 
 describe('safeParseCliArgs', () => {
   afterEach(() => {
