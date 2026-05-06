@@ -3,7 +3,7 @@
 A CLI tool that starts an HTTP caching proxy server using **Redis**.
 
 This project is based on the specification from:
-[https://roadmap.sh/projects/caching-server](https://roadmap.sh/projects/caching-server)
+https://roadmap.sh/projects/caching-server
 
 ---
 
@@ -11,11 +11,11 @@ This project is based on the specification from:
 
 In progress
 
-✅ Core application layer implemented
-✅ Cache policy and key builder
-✅ Request handling with HIT/MISS logic
-🚧 HTTP server implementation (pending)
-🚧 CLI parsing (pending)
+✅ Core application layer implemented  
+✅ Cache policy and key builder  
+✅ Request handling with HIT/MISS logic  
+✅ CLI parsing implemented (Commander)  
+🚧 HTTP server implementation (pending)  
 🚧 Redis integration (pending)
 
 ---
@@ -37,29 +37,40 @@ Build a CLI tool that starts a caching proxy server which:
 - Node.js (>= 20)
 - TypeScript
 - Redis (cache layer)
+- Commander (CLI parsing)
 - Vitest (testing)
 - ESLint + Prettier
 
 ---
 
-## ⚙️ Usage (planned)
+## ⚙️ CLI Commands
 
-Start the caching proxy server:
-
-```bash
-caching-proxy --port <number> --origin <url>
-```
-
-### Parameters
-
-- `--port` → Port where the proxy server will run
-- `--origin` → Base URL of the target server
-
-### Example
+### Start server
 
 ```bash
-caching-proxy --port 3000 --origin http://dummyjson.com
+caching-proxy start --port <number> --origin <url>
 ```
+
+#### Parameters
+
+- `--port` → Port where the proxy server will run (1–65535)
+- `--origin` → Base URL of the target server (must be a valid HTTP/HTTPS URL)
+
+#### Example
+
+```bash
+caching-proxy start --port 3000 --origin http://dummyjson.com
+```
+
+---
+
+### Clear cache
+
+```bash
+caching-proxy clear-cache
+```
+
+- Clears all cached entries from Redis (planned)
 
 ---
 
@@ -76,11 +87,13 @@ GET http://localhost:3000/products
 ### Behavior
 
 1. The request is normalized and transformed into a cache key
+
 2. The cache (Redis) is checked:
    - If found → return cached response (**HIT**)
    - If not → forward request to origin (**MISS**)
 
 3. The response is optionally cached based on policy
+
 4. A header is added to indicate cache status
 
 ---
@@ -108,7 +121,7 @@ X-Cache: MISS
 - Default TTL is configurable
 - Responses are **NOT cached** when:
 
-```text
+```
 statusCode >= 500
 ```
 
@@ -149,6 +162,7 @@ src/
     errors/
   shared/
   main/
+    cli/
 ```
 
 ### Key Concepts
@@ -162,6 +176,12 @@ src/
 
 - **Services**
   - `DefaultCacheKeyBuilder` → builds deterministic cache keys
+
+- **CLI Layer**
+  - Argument parsing using Commander
+  - Input validation (port, URL)
+  - Command handling (`start`, `clear-cache`)
+  - Error abstraction via `CliParseError`
 
 - **Ports (Interfaces)**
   - Cache
@@ -214,16 +234,9 @@ npm run test:coverage
 - Cache key builder
 - Request handling (HIT / MISS / skip logic)
 - Server startup validation
-
----
-
-## 🧹 Clear Cache (planned)
-
-```bash
-caching-proxy --clear-cache
-```
-
-- Clears all cached entries from Redis
+- CLI parsing (commands, validation, error handling)
+- CLI parsers (port and URL validation)
+- CLI error handling (anti-corruption layer)
 
 ---
 
@@ -245,11 +258,10 @@ npm run start:dev
 
 ## 🧠 Next Steps
 
-- [ ] Implement CLI argument parsing
 - [ ] Implement HTTP server adapter (Express / Fastify / native)
 - [ ] Implement Redis cache adapter
 - [ ] Wire dependencies in composition root
-- [ ] Implement cache clearing command
+- [ ] Implement cache clearing command (integration with Redis)
 - [ ] Add logging and observability
 - [ ] Add request method support beyond GET
 - [ ] Add cache invalidation strategies
