@@ -15,8 +15,9 @@ In progress
 ✅ Cache policy and key builder  
 ✅ Request handling with HIT/MISS logic  
 ✅ CLI parsing implemented (Commander)  
-🚧 HTTP server implementation (pending)  
-🚧 Redis integration (pending)
+✅ Redis cache service implemented  
+✅ Redis tag invalidation support  
+🚧 HTTP server implementation (pending)
 
 ---
 
@@ -29,6 +30,7 @@ Build a CLI tool that starts a caching proxy server which:
 - Returns cached responses when available
 - Indicates cache status via HTTP headers
 - Allows clearing the cache via CLI
+- Supports cache invalidation using tags
 
 ---
 
@@ -36,10 +38,27 @@ Build a CLI tool that starts a caching proxy server which:
 
 - Node.js (>= 20)
 - TypeScript
-- Redis (cache layer)
-- Commander (CLI parsing)
-- Vitest (testing)
+- Redis
+- Commander
+- Zod
+- Vitest
 - ESLint + Prettier
+
+---
+
+## ⚙️ Environment Variables
+
+Create a `.env` file:
+
+```env
+REDIS_URL=redis://localhost:6379
+```
+
+You can also copy the provided example:
+
+```bash
+cp .env.example .env
+```
 
 ---
 
@@ -70,7 +89,7 @@ caching-proxy start --port 3000 --origin http://dummyjson.com
 caching-proxy clear-cache
 ```
 
-- Clears all cached entries from Redis (planned)
+- Clears all cached entries from Redis
 
 ---
 
@@ -116,7 +135,7 @@ X-Cache: MISS
 
 ---
 
-### Cache Policy (current implementation)
+### Cache Policy
 
 - Default TTL is configurable
 - Responses are **NOT cached** when:
@@ -146,6 +165,33 @@ The cache key is generated using:
 
 ---
 
+## 🏷️ Cache Tags
+
+The Redis cache service supports cache tagging.
+
+This allows grouping cache keys and invalidating them together.
+
+### Example
+
+```ts
+await cache.set('product:1', product, {
+  tags: ['products'],
+});
+```
+
+### Invalidate a tag
+
+```ts
+await cache.invalidateTag('products');
+```
+
+This will remove:
+
+- All cache keys associated with the tag
+- The Redis set that stores the tag references
+
+---
+
 ## 🧱 Architecture
 
 The project follows a **Clean Architecture / Hexagonal Architecture** style:
@@ -157,31 +203,44 @@ src/
     policies/
     services/
     ports/
+
   domain/
     value-objects/
     errors/
-  shared/
+
+  infra/
+    cache/
+
   main/
     cli/
+
+  config/
 ```
 
 ### Key Concepts
 
 - **Use Cases**
-  - `HandleHttpRequest` → core caching logic
-  - `StartServerUseCase` → validates and starts server
+  - `HandleHttpRequest`
+  - `StartServerUseCase`
 
 - **Policies**
-  - `DefaultCachePolicy` → defines TTL and skip rules
+  - `DefaultCachePolicy`
 
 - **Services**
-  - `DefaultCacheKeyBuilder` → builds deterministic cache keys
+  - `DefaultCacheKeyBuilder`
+  - `RedisCacheService`
 
 - **CLI Layer**
   - Argument parsing using Commander
-  - Input validation (port, URL)
-  - Command handling (`start`, `clear-cache`)
-  - Error abstraction via `CliParseError`
+  - Input validation
+  - Command handling
+  - Error abstraction using `CliParseError`
+
+- **Infrastructure**
+  - Redis client factory
+  - Redis cache implementation
+  - Redis reconnect strategy
+  - Cache tag invalidation
 
 - **Ports (Interfaces)**
   - Cache
@@ -190,21 +249,34 @@ src/
 
 ---
 
-## 🔴 Redis (Planned Integration)
+## 🔴 Redis Integration
 
-Redis will be used as the cache provider.
+Redis is used as the cache provider.
 
 ### Responsibilities
 
 - Store HTTP responses
 - Handle TTL expiration
-- Support cache invalidation
+- Support cache invalidation by tags
+- Provide fast cache lookup
 
-### Expected behavior
+### Current Features
 
-- `SET key value EX ttl`
-- JSON serialization of responses
-- Optional tagging support (future)
+- JSON serialization
+- TTL support
+- Tag-based invalidation
+- Redis pipelines (`MULTI`)
+- Reconnect strategy
+- Graceful cache failures
+
+### Example Redis Commands
+
+```text
+SET key value EX ttl
+SADD tag:products product:1
+SMEMBERS tag:products
+DEL product:1
+```
 
 ---
 
@@ -233,10 +305,12 @@ npm run test:coverage
 - Cache policy
 - Cache key builder
 - Request handling (HIT / MISS / skip logic)
-- Server startup validation
-- CLI parsing (commands, validation, error handling)
-- CLI parsers (port and URL validation)
-- CLI error handling (anti-corruption layer)
+- CLI parsing
+- CLI validation
+- CLI error handling
+- Redis cache service
+- Redis client factory
+- Redis tag invalidation
 
 ---
 
@@ -246,6 +320,12 @@ npm run test:coverage
 
 ```bash
 npm install
+```
+
+### Start Redis locally
+
+```bash
+docker run -p 6379:6379 redis
 ```
 
 ### Run in development mode
@@ -259,12 +339,12 @@ npm run start:dev
 ## 🧠 Next Steps
 
 - [ ] Implement HTTP server adapter (Express / Fastify / native)
-- [ ] Implement Redis cache adapter
 - [ ] Wire dependencies in composition root
-- [ ] Implement cache clearing command (integration with Redis)
+- [ ] Implement full cache clearing command
 - [ ] Add logging and observability
 - [ ] Add request method support beyond GET
-- [ ] Add cache invalidation strategies
+- [ ] Add cache invalidation strategies by route/pattern
+- [ ] Add metrics and monitoring
 
 ---
 
