@@ -5,4 +5,5 @@ export interface Cache {
   set<T>(key: string, value: T, options?: CacheSetOptions<T>): Promise<void>;
   delete(key: string): Promise<void>;
   clear(): Promise<void>;
+  invalidateTag(tag: string): Promise<void>;
 }

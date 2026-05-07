@@ -6,5 +6,6 @@ export function createCacheMock() {
     set: vi.fn(),
     delete: vi.fn(),
     clear: vi.fn(),
+    invalidateTag: vi.fn(),
   };
 }
