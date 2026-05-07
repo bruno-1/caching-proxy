@@ -10,9 +10,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "start:dev": "tsx --watch src/main/index.ts",
+    "start:dev": "tsx --env-file=.env --watch src/main/index.ts",
     "build": "tsc",
-    "start": "node dist/main/index.js",
+    "start": "node  --env-file=.env dist/main/index.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
@@ -42,6 +42,7 @@
     ]
   },
   "dependencies": {
-    "commander": "^14.0.3"
+    "commander": "^14.0.3",
+    "zod": "^4.4.3"
   }
 }
