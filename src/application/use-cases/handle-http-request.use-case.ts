@@ -18,26 +18,13 @@ export class HandleHttpRequest {
 
     const cached = await this.cache.get<HttpResponse>(key);
 
-    if (cached !== null)
-      return {
-        ...cached,
-        headers: {
-          ...(cached.headers ?? {}),
-          'X-Cache': 'HIT',
-        },
-      };
+    if (cached !== null) return this.withCacheHeader(cached, 'HIT');
 
     const response = await this.httpClient.get(request);
 
     const policy = this.cachePolicy.for(request);
     if (policy.skipIf?.(response))
-      return {
-        ...response,
-        headers: {
-          ...(response.headers ?? {}),
-          'X-Cache': 'MISS',
-        },
-      };
+      return this.withCacheHeader(response, 'MISS');
 
     const cacheOptions = compactObject({
       ttlSeconds: policy.ttlSeconds,
@@ -48,11 +35,18 @@ export class HandleHttpRequest {
 
     await this.cache.set(key, response, finalOptions);
 
+    return this.withCacheHeader(response, 'MISS');
+  }
+
+  private withCacheHeader(
+    response: HttpResponse,
+    value: 'HIT' | 'MISS',
+  ): HttpResponse {
     return {
       ...response,
       headers: {
         ...(response.headers ?? {}),
-        'X-Cache': 'MISS',
+        'X-Cache': value,
       },
     };
   }
