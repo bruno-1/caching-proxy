@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { HandleHttpRequest } from '../../../src/application/use-cases/handle-http-request.use-case.js';
+import { HandleHttpRequestUseCase } from '../../../src/application/use-cases/handle-http-request.use-case.js';
 import { createCacheMock } from '../../factories/cache-mock.js';
 import { createHttpClientMock } from '../../factories/http-client-mock.js';
 import { createCacheKeyBuilderMock } from '../../factories/cache-key-builder-mock.js';
@@ -15,7 +15,7 @@ function makeSut() {
   const cacheKeyBuilder = createCacheKeyBuilderMock();
   const cachePolicy = createCachePolicyMock();
 
-  const sut = new HandleHttpRequest(
+  const sut = new HandleHttpRequestUseCase(
     cache,
     httpClient,
     cacheKeyBuilder,
@@ -31,7 +31,7 @@ function makeSut() {
   };
 }
 
-describe('HandleHttpRequest', () => {
+describe('HandleHttpRequestUseCase', () => {
   let ctx: ReturnType<typeof makeSut>;
 
   beforeEach(() => {

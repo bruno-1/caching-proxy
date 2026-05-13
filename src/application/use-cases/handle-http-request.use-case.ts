@@ -5,7 +5,7 @@ import type { CacheKeyBuilder } from '../ports/output/cache-key-builder.js';
 import type { Cache } from '../ports/output/cache.js';
 import type { HttpClient } from '../ports/output/http-client.js';
 
-export class HandleHttpRequest {
+export class HandleHttpRequestUseCase {
   constructor(
     private readonly cache: Cache,
     private readonly httpClient: HttpClient,
