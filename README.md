@@ -1,48 +1,124 @@
 # caching-proxy
 
-A CLI tool that starts an HTTP caching proxy server using **Redis**.
+A CLI tool that starts an HTTP caching proxy server using Redis.
 
-This project is based on the specification from:
-https://roadmap.sh/projects/caching-server
-
----
-
-## 🚧 Status
-
-In progress
-
-✅ Core application layer implemented  
-✅ Cache policy and key builder  
-✅ Request handling with HIT/MISS logic  
-✅ CLI parsing implemented (Commander)  
-✅ Redis cache service implemented  
-✅ Redis tag invalidation support  
-🚧 HTTP server implementation (pending)
+This project is based on the roadmap.sh challenge:
+[Caching Server Project](https://roadmap.sh/projects/caching-server)
 
 ---
 
-## 🎯 Project Goal
+## 📌 Overview
 
-Build a CLI tool that starts a caching proxy server which:
+`caching-proxy` is an HTTP proxy server that forwards requests to an origin server and caches responses using Redis.
 
-- Forwards HTTP requests to an origin server
-- Caches responses using Redis
-- Returns cached responses when available
-- Indicates cache status via HTTP headers
-- Allows clearing the cache via CLI
-- Supports cache invalidation using tags
+When a request is repeated, the cached response is returned instead of forwarding the request again to the origin server.
+
+The proxy also adds a response header indicating whether the response came from the cache or directly from the origin server.
+
+---
+
+## 🚀 Features
+
+- HTTP caching proxy server
+- Redis-based cache storage
+- Cache HIT/MISS response headers
+- Cache key normalization
+- Query string normalization and sorting
+- TTL-based cache expiration
+- Tag-based cache invalidation
+- CLI interface using Commander
+- Clean Architecture / Hexagonal Architecture
+- Fully typed with TypeScript
+- Unit tests with Vitest
+- Fastify HTTP server
+- Redis reconnect strategy
+- Graceful cache fallback behavior
 
 ---
 
 ## 🧰 Tech Stack
 
-- Node.js (>= 20)
+- Node.js >= 20
 - TypeScript
+- Fastify
 - Redis
 - Commander
-- Zod
 - Vitest
-- ESLint + Prettier
+- Zod
+- ESLint
+- Prettier
+- Husky
+- lint-staged
+
+---
+
+## 📂 Project Structure
+
+```text
+src/
+├── application/
+│   ├── config/
+│   ├── dtos/
+│   ├── policies/
+│   ├── ports/
+│   ├── services/
+│   └── use-cases/
+│
+├── domain/
+│   ├── errors/
+│   └── value-objects/
+│
+├── infra/
+│   ├── cache/
+│   └── http/
+│
+├── main/
+│   └── cli/
+│
+├── shared/
+│   └── utils/
+│
+└── config/
+```
+
+---
+
+## 🏛️ Architecture
+
+The project follows Clean Architecture principles.
+
+### Layers
+
+#### Domain
+
+Contains business rules and validations:
+
+- `Port`
+- `OriginUrl`
+- Domain errors
+
+#### Application
+
+Contains use cases and abstractions:
+
+- `HandleHttpRequestUseCase`
+- `StartServerUseCase`
+- `ClearCacheUseCase`
+- Cache policies
+- Cache key generation
+
+#### Infrastructure
+
+Contains external integrations:
+
+- Redis cache service
+- Redis client factory
+- Fastify server adapter
+- Fetch HTTP client
+
+#### Main
+
+CLI entrypoint and command parsing.
 
 ---
 
@@ -54,7 +130,7 @@ Create a `.env` file:
 REDIS_URL=redis://localhost:6379
 ```
 
-You can also copy the provided example:
+Or copy the example file:
 
 ```bash
 cp .env.example .env
@@ -62,114 +138,199 @@ cp .env.example .env
 
 ---
 
-## ⚙️ CLI Commands
+## 📦 Installation
 
-### Start server
+### Clone repository
+
+```bash
+git clone <repository-url>
+cd caching-proxy
+```
+
+### Install dependencies
+
+```bash
+npm install
+```
+
+---
+
+## 🐳 Running Redis
+
+Start Redis locally using Docker:
+
+```bash
+docker run -p 6379:6379 redis
+```
+
+---
+
+## ▶️ Running the Project
+
+### Development mode
+
+```bash
+npm run start:dev
+```
+
+### Production build
+
+```bash
+npm run build
+npm start
+```
+
+---
+
+## 🖥️ CLI Usage
+
+The application exposes two CLI commands:
+
+---
+
+### Start Proxy Server
 
 ```bash
 caching-proxy start --port <number> --origin <url>
 ```
 
-#### Parameters
+### Parameters
 
-- `--port` → Port where the proxy server will run (1–65535)
-- `--origin` → Base URL of the target server (must be a valid HTTP/HTTPS URL)
+| Parameter  | Description                          |
+| ---------- | ------------------------------------ |
+| `--port`   | Port where the proxy server will run |
+| `--origin` | Origin server URL                    |
 
-#### Example
+### Example
 
 ```bash
-caching-proxy start --port 3000 --origin http://dummyjson.com
+caching-proxy start \
+  --port 3000 \
+  --origin http://dummyjson.com
 ```
 
 ---
 
-### Clear cache
+### Clear Cache
 
 ```bash
 caching-proxy clear-cache
 ```
 
-- Clears all cached entries from Redis
+This command clears all Redis cache entries.
 
 ---
 
-## 🌐 How It Works
+## 🌐 How the Proxy Works
 
-With the server running:
+If the proxy server is running on:
 
-### Request
-
-```http
-GET http://localhost:3000/products
+```text
+http://localhost:3000
 ```
 
-### Behavior
+And the origin server is:
 
-1. The request is normalized and transformed into a cache key
+```text
+http://dummyjson.com
+```
 
-2. The cache (Redis) is checked:
-   - If found → return cached response (**HIT**)
-   - If not → forward request to origin (**MISS**)
+A request like:
 
-3. The response is optionally cached based on policy
+```http
+GET /products
+```
 
-4. A header is added to indicate cache status
+Will be forwarded to:
+
+```http
+http://dummyjson.com/products
+```
+
+The response will then be:
+
+1. Returned to the client
+2. Cached in Redis
+3. Marked with an `X-Cache` header
 
 ---
 
-## 🧠 Cache Behavior
+## 🧠 Cache Headers
 
-### Headers
+### Cache MISS
 
-```http
-X-Cache: HIT
-```
-
-- Returned when response comes from Redis
+Returned when the request is forwarded to the origin server.
 
 ```http
 X-Cache: MISS
 ```
 
-- Returned when response comes from origin server
+---
+
+### Cache HIT
+
+Returned when the response comes directly from Redis.
+
+```http
+X-Cache: HIT
+```
 
 ---
 
-### Cache Policy
+## 🔑 Cache Key Strategy
 
-- Default TTL is configurable
-- Responses are **NOT cached** when:
+Cache keys are normalized using:
 
-```
-statusCode >= 500
-```
-
-- All other responses are cached
-
----
-
-### Cache Key Strategy
-
-The cache key is generated using:
-
-- Normalized path (no trailing slash)
+- Request path
 - Sorted query parameters
-- Support for array query params
-- Ignores undefined values
+- Array query parameter support
+- Removal of trailing slashes
+- Ignoring undefined query params
 
-#### Example
+### Example
 
-```bash
+Both requests below generate the same cache key:
+
+```text
+/products?b=2&a=1
+/products?a=1&b=2
+```
+
+Generated cache key:
+
+```text
 /products?a=1&b=2
 ```
 
 ---
 
+## ⏱️ Cache Policy
+
+The default cache policy:
+
+- Applies configurable TTL
+- Prevents caching of server errors
+
+### Responses NOT cached
+
+```text
+statusCode >= 500
+```
+
+### Responses cached
+
+- 200
+- 201
+- 204
+- 400
+- 404
+- etc.
+
+---
+
 ## 🏷️ Cache Tags
 
-The Redis cache service supports cache tagging.
-
-This allows grouping cache keys and invalidating them together.
+The Redis cache service supports tag-based invalidation.
 
 ### Example
 
@@ -179,104 +340,48 @@ await cache.set('product:1', product, {
 });
 ```
 
-### Invalidate a tag
+### Invalidate tag
 
 ```ts
 await cache.invalidateTag('products');
 ```
 
-This will remove:
+This removes:
 
-- All cache keys associated with the tag
-- The Redis set that stores the tag references
-
----
-
-## 🧱 Architecture
-
-The project follows a **Clean Architecture / Hexagonal Architecture** style:
-
-```
-src/
-  application/
-    use-cases/
-    policies/
-    services/
-    ports/
-
-  domain/
-    value-objects/
-    errors/
-
-  infra/
-    cache/
-
-  main/
-    cli/
-
-  config/
-```
-
-### Key Concepts
-
-- **Use Cases**
-  - `HandleHttpRequest`
-  - `StartServerUseCase`
-
-- **Policies**
-  - `DefaultCachePolicy`
-
-- **Services**
-  - `DefaultCacheKeyBuilder`
-  - `RedisCacheService`
-
-- **CLI Layer**
-  - Argument parsing using Commander
-  - Input validation
-  - Command handling
-  - Error abstraction using `CliParseError`
-
-- **Infrastructure**
-  - Redis client factory
-  - Redis cache implementation
-  - Redis reconnect strategy
-  - Cache tag invalidation
-
-- **Ports (Interfaces)**
-  - Cache
-  - HTTP Client
-  - Server
+- All keys associated with the tag
+- The Redis tag reference set
 
 ---
 
-## 🔴 Redis Integration
+## 🔴 Redis Features
 
-Redis is used as the cache provider.
-
-### Responsibilities
-
-- Store HTTP responses
-- Handle TTL expiration
-- Support cache invalidation by tags
-- Provide fast cache lookup
-
-### Current Features
+Implemented Redis features:
 
 - JSON serialization
-- TTL support
-- Tag-based invalidation
+- TTL expiration
 - Redis pipelines (`MULTI`)
-- Reconnect strategy
-- Graceful cache failures
+- Tag invalidation
+- Graceful cache failure handling
+- Reconnect strategy with capped delay
 
-### Example Redis Commands
+### Reconnect Strategy
 
-```text
-SET key value EX ttl
-SADD tag:products product:1
-SMEMBERS tag:products
-DEL product:1
-```
+The Redis reconnect delay grows progressively until reaching a maximum of `500ms`.
+
+---
+
+## 🌍 HTTP Layer
+
+The HTTP server is implemented using Fastify.
+
+### Current behavior
+
+- Handles `GET` requests
+- Normalizes query parameters
+- Supports repeated query params
+- Forwards requests to origin server
+- Returns origin response headers
+- Adds cache headers
 
 ---
 
@@ -300,51 +405,86 @@ Coverage:
 npm run test:coverage
 ```
 
-### Covered Areas
+---
+
+## ✅ Tested Components
+
+### Application Layer
 
 - Cache policy
 - Cache key builder
-- Request handling (HIT / MISS / skip logic)
-- CLI parsing
-- CLI validation
-- CLI error handling
+- Request handling
+- Cache HIT/MISS flow
+- Cache skip rules
+- Start server use case
+- Clear cache use case
+
+### Infrastructure Layer
+
 - Redis cache service
 - Redis client factory
-- Redis tag invalidation
+- Fastify server adapter
+- Fetch HTTP client
+
+### CLI
+
+- Command parsing
+- URL validation
+- Port validation
+- Error handling
 
 ---
 
-## ▶️ Getting Started
+## 🛠️ Development Tooling
 
-### Install dependencies
-
-```bash
-npm install
-```
-
-### Start Redis locally
+### Lint
 
 ```bash
-docker run -p 6379:6379 redis
+npm run lint
 ```
 
-### Run in development mode
+### Format
 
 ```bash
-npm run start:dev
+npm run format
 ```
+
+### Git Hooks
+
+Husky + lint-staged are configured to run:
+
+- ESLint
+- Prettier
+
+Before commits.
 
 ---
 
-## 🧠 Next Steps
+## 📋 Current Status
 
-- [ ] Implement HTTP server adapter (Express / Fastify / native)
-- [ ] Wire dependencies in composition root
-- [ ] Implement full cache clearing command
-- [ ] Add logging and observability
-- [ ] Add request method support beyond GET
-- [ ] Add cache invalidation strategies by route/pattern
-- [ ] Add metrics and monitoring
+### Implemented
+
+- CLI command parsing
+- Fastify proxy server
+- Redis cache layer
+- Cache policy system
+- Cache key normalization
+- HTTP request forwarding
+- Cache HIT/MISS handling
+- Tag invalidation
+- Redis reconnect strategy
+- Unit tests
+
+### TODO
+
+- Dependency injection / composition root wiring
+- Full application bootstrap
+- Additional HTTP methods support
+- Cache invalidation by route/pattern
+- Observability and metrics
+- Structured logging
+- Integration tests
+- Docker setup
 
 ---
 
