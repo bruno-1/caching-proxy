@@ -3,42 +3,47 @@
 A CLI tool that starts an HTTP caching proxy server using Redis.
 
 This project is based on the roadmap.sh challenge:
-[Caching Server Project](https://roadmap.sh/projects/caching-server)
+
+https://roadmap.sh/projects/caching-server
 
 ---
 
-## 📌 Overview
+## 🚀 Overview
 
 `caching-proxy` is an HTTP proxy server that forwards requests to an origin server and caches responses using Redis.
 
-When a request is repeated, the cached response is returned instead of forwarding the request again to the origin server.
+When the same request is made multiple times, the proxy returns the cached response instead of forwarding the request again to the origin server.
 
-The proxy also adds a response header indicating whether the response came from the cache or directly from the origin server.
+The proxy also adds an `X-Cache` header indicating whether the response came from:
+
+- the cache (`HIT`)
+- the origin server (`MISS`)
 
 ---
 
-## 🚀 Features
+## ✨ Features
 
 - HTTP caching proxy server
 - Redis-based cache storage
-- Cache HIT/MISS response headers
-- Cache key normalization
-- Query string normalization and sorting
+- Cache HIT/MISS headers
 - TTL-based cache expiration
+- Query string normalization
+- Cache key normalization
+- Array query parameter support
+- Graceful Redis failure fallback
 - Tag-based cache invalidation
-- CLI interface using Commander
-- Clean Architecture / Hexagonal Architecture
+- Clean Architecture
 - Fully typed with TypeScript
-- Unit tests with Vitest
 - Fastify HTTP server
 - Redis reconnect strategy
-- Graceful cache fallback behavior
+- CLI interface with Commander
+- Extensive unit test coverage
 
 ---
 
 ## 🧰 Tech Stack
 
-- Node.js >= 20
+- Node.js 20+
 - TypeScript
 - Fastify
 - Redis
@@ -73,7 +78,8 @@ src/
 │   └── http/
 │
 ├── main/
-│   └── cli/
+│   ├── cli/
+│   └── factories/
 │
 ├── shared/
 │   └── utils/
@@ -85,40 +91,38 @@ src/
 
 ## 🏛️ Architecture
 
-The project follows Clean Architecture principles.
+This project follows Clean Architecture principles.
 
-### Layers
+### Domain
 
-#### Domain
-
-Contains business rules and validations:
+Business rules and validations:
 
 - `Port`
 - `OriginUrl`
-- Domain errors
+- domain errors
 
-#### Application
+### Application
 
-Contains use cases and abstractions:
+Application use cases and abstractions:
 
 - `HandleHttpRequestUseCase`
 - `StartServerUseCase`
 - `ClearCacheUseCase`
-- Cache policies
-- Cache key generation
+- cache policies
+- cache key generation
 
-#### Infrastructure
+### Infrastructure
 
-Contains external integrations:
+External integrations and adapters:
 
 - Redis cache service
 - Redis client factory
 - Fastify server adapter
 - Fetch HTTP client
 
-#### Main
+### Main
 
-CLI entrypoint and command parsing.
+Application bootstrap and dependency composition.
 
 ---
 
@@ -128,6 +132,7 @@ Create a `.env` file:
 
 ```env
 REDIS_URL=redis://localhost:6379
+CACHE_DEFAULT_TTL=60
 ```
 
 Or copy the example file:
@@ -135,6 +140,13 @@ Or copy the example file:
 ```bash
 cp .env.example .env
 ```
+
+### Variables
+
+| Variable            | Description                  | Default |
+| ------------------- | ---------------------------- | ------- |
+| `REDIS_URL`         | Redis connection URL         | —       |
+| `CACHE_DEFAULT_TTL` | Default cache TTL in seconds | `60`    |
 
 ---
 
@@ -157,7 +169,7 @@ npm install
 
 ## 🐳 Running Redis
 
-Start Redis locally using Docker:
+Run Redis locally with Docker:
 
 ```bash
 docker run -p 6379:6379 redis
@@ -173,18 +185,25 @@ docker run -p 6379:6379 redis
 npm run start:dev
 ```
 
-### Production build
+### Production mode
+
+Build the project:
 
 ```bash
 npm run build
-npm start
+```
+
+Start the application:
+
+```bash
+npm start -- start \
+  --port 3000 \
+  --origin http://dummyjson.com
 ```
 
 ---
 
 ## 🖥️ CLI Usage
-
-The application exposes two CLI commands:
 
 ---
 
@@ -223,7 +242,7 @@ This command clears all Redis cache entries.
 
 ## 🌐 How the Proxy Works
 
-If the proxy server is running on:
+If the proxy server runs on:
 
 ```text
 http://localhost:3000
@@ -247,11 +266,11 @@ Will be forwarded to:
 http://dummyjson.com/products
 ```
 
-The response will then be:
+The response is then:
 
-1. Returned to the client
-2. Cached in Redis
-3. Marked with an `X-Cache` header
+1. returned to the client
+2. cached in Redis
+3. marked with the `X-Cache` header
 
 ---
 
@@ -264,8 +283,6 @@ Returned when the request is forwarded to the origin server.
 ```http
 X-Cache: MISS
 ```
-
----
 
 ### Cache HIT
 
@@ -281,11 +298,11 @@ X-Cache: HIT
 
 Cache keys are normalized using:
 
-- Request path
-- Sorted query parameters
-- Array query parameter support
-- Removal of trailing slashes
-- Ignoring undefined query params
+- request path
+- sorted query parameters
+- repeated query parameter support
+- trailing slash normalization
+- undefined query param removal
 
 ### Example
 
@@ -308,8 +325,8 @@ Generated cache key:
 
 The default cache policy:
 
-- Applies configurable TTL
-- Prevents caching of server errors
+- applies configurable TTL
+- prevents caching of server errors
 
 ### Responses NOT cached
 
@@ -324,7 +341,6 @@ statusCode >= 500
 - 204
 - 400
 - 404
-- etc.
 
 ---
 
@@ -348,8 +364,8 @@ await cache.invalidateTag('products');
 
 This removes:
 
-- All keys associated with the tag
-- The Redis tag reference set
+- all keys associated with the tag
+- the Redis tag reference set
 
 ---
 
@@ -360,28 +376,28 @@ Implemented Redis features:
 - JSON serialization
 - TTL expiration
 - Redis pipelines (`MULTI`)
-- Tag invalidation
-- Graceful cache failure handling
-- Reconnect strategy with capped delay
+- tag invalidation
+- graceful cache failure handling
+- reconnect strategy with capped delay
 
 ### Reconnect Strategy
 
-The Redis reconnect delay grows progressively until reaching a maximum of `500ms`.
+The reconnect delay grows progressively until reaching a maximum of `500ms`.
 
 ---
 
 ## 🌍 HTTP Layer
 
-The HTTP server is implemented using Fastify.
+The HTTP layer is implemented using Fastify.
 
 ### Current behavior
 
-- Handles `GET` requests
-- Normalizes query parameters
-- Supports repeated query params
-- Forwards requests to origin server
-- Returns origin response headers
-- Adds cache headers
+- handles `GET` requests
+- normalizes query parameters
+- supports repeated query params
+- forwards requests to origin server
+- returns origin response headers
+- adds cache headers
 
 ---
 
@@ -411,13 +427,13 @@ npm run test:coverage
 
 ### Application Layer
 
-- Cache policy
-- Cache key builder
-- Request handling
-- Cache HIT/MISS flow
-- Cache skip rules
-- Start server use case
-- Clear cache use case
+- cache policy
+- cache key builder
+- request handling
+- cache HIT/MISS flow
+- cache skip rules
+- start server use case
+- clear cache use case
 
 ### Infrastructure Layer
 
@@ -428,10 +444,10 @@ npm run test:coverage
 
 ### CLI
 
-- Command parsing
+- command parsing
 - URL validation
-- Port validation
-- Error handling
+- port validation
+- error handling
 
 ---
 
@@ -451,12 +467,12 @@ npm run format
 
 ### Git Hooks
 
-Husky + lint-staged are configured to run:
+Husky + lint-staged run automatically before commits.
+
+Configured tasks:
 
 - ESLint
 - Prettier
-
-Before commits.
 
 ---
 
@@ -465,26 +481,27 @@ Before commits.
 ### Implemented
 
 - CLI command parsing
+- application bootstrap
+- dependency composition
 - Fastify proxy server
 - Redis cache layer
-- Cache policy system
-- Cache key normalization
+- cache policy system
+- cache key normalization
 - HTTP request forwarding
-- Cache HIT/MISS handling
-- Tag invalidation
+- cache HIT/MISS handling
+- tag invalidation
 - Redis reconnect strategy
-- Unit tests
+- unit tests
 
-### TODO
+### Possible Future Improvements
 
-- Dependency injection / composition root wiring
-- Full application bootstrap
-- Additional HTTP methods support
-- Cache invalidation by route/pattern
-- Observability and metrics
-- Structured logging
-- Integration tests
-- Docker setup
+- support for additional HTTP methods
+- cache invalidation by route/pattern
+- observability and metrics
+- structured logging
+- integration tests
+- Docker Compose setup
+- configurable cache strategies
 
 ---
 
