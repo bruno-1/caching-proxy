@@ -1,4 +1,4 @@
-import { createClient } from 'redis';
+import { createClient, type RedisClientType } from 'redis';
 import { env } from '../../config/env.js';
 
 export async function makeRedisClient() {
@@ -19,5 +19,5 @@ export async function makeRedisClient() {
 
   await redisClient.connect();
 
-  return redisClient;
+  return redisClient as RedisClientType;
 }
