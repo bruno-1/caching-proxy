@@ -63,10 +63,7 @@ describe('StartServerUseCase', () => {
 
     expect(server.start).toHaveBeenCalledTimes(1);
 
-    const [params] = vi.mocked(server.start).mock.calls[0];
-
-    expect(params.port.value).toBe(3000);
-    expect(params.originUrl.value).toBe('http://dummyjson.com/');
+    expect(server.start).toHaveBeenCalledWith(3000);
   });
 
   it.each(invalidCases)('should throw $name', async ({ input, error }) => {

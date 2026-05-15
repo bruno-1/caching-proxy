@@ -1,5 +1,4 @@
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
-import type { StartServerParams } from '../../application/dtos/start-server-params.dto.js';
 import type { CachingProxyServer } from '../../application/ports/output/caching-proxy-server.js';
 import type { HandleHttpRequestUseCase } from '../../application/use-cases/handle-http-request.use-case.js';
 
@@ -8,14 +7,14 @@ export class FastifyCachingProxyServer implements CachingProxyServer {
     private readonly handleHttpRequestUseCase: HandleHttpRequestUseCase,
   ) {}
 
-  async start(params: StartServerParams) {
+  async start(port: number) {
     const app = Fastify({ logger: true });
 
     app.get('/*', this.handleRequest);
 
-    await app.listen({ port: params.port.value });
+    await app.listen({ port });
 
-    app.log.info(`Caching proxy running on port ${params.port.value}`);
+    app.log.info(`Caching proxy running on port ${port}`);
   }
 
   handleRequest = async (request: FastifyRequest, reply: FastifyReply) => {
