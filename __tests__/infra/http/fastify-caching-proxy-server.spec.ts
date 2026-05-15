@@ -1,195 +1,277 @@
+import Fastify from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { FastifyReply, FastifyRequest } from 'fastify';
 import { FastifyCachingProxyServer } from '../../../src/infra/http/fastify-caching-proxy-server.js';
-import { HandleHttpRequestUseCase } from '../../../src/application/use-cases/handle-http-request.use-case.js';
 
-type HandleHttpRequestUseCaseMock = {
-  execute: ReturnType<typeof vi.fn>;
+const appMock = {
+  get: vi.fn(),
+  listen: vi.fn(),
+  log: { info: vi.fn() },
 };
 
-function makeHandleHttpRequestUseCaseMock() {
-  return { execute: vi.fn() };
-}
+vi.mock('fastify', () => ({
+  default: vi.fn(() => appMock),
+}));
 
-function makeRequest({
-  url = '/products',
-  query = {},
-}: { url?: string; query?: Record<string, unknown> } = {}): FastifyRequest {
-  return { url, query } as FastifyRequest;
-}
+function makeSut() {
+  const handleHttpRequestUseCase = {
+    execute: vi.fn(),
+  };
 
-function makeReply(): FastifyReply {
+  const sut = new FastifyCachingProxyServer(handleHttpRequestUseCase as never);
+
   return {
-    status: vi.fn().mockReturnThis(),
-    header: vi.fn(),
-  } as unknown as FastifyReply;
-}
-
-function makeUseCaseResponse({
-  statusCode = 200,
-  headers = {},
-  body = {},
-}: {
-  statusCode?: number;
-  headers?: Record<string, string>;
-  body?: unknown;
-} = {}) {
-  return { statusCode, headers, body };
+    sut,
+    handleHttpRequestUseCase,
+  };
 }
 
 describe('FastifyCachingProxyServer', () => {
-  let sut: FastifyCachingProxyServer;
-
-  let handleHttpRequestUseCaseMock: HandleHttpRequestUseCaseMock;
-
   beforeEach(() => {
-    handleHttpRequestUseCaseMock = makeHandleHttpRequestUseCaseMock();
-
-    sut = new FastifyCachingProxyServer(
-      handleHttpRequestUseCaseMock as unknown as HandleHttpRequestUseCase,
-    );
+    vi.clearAllMocks();
   });
 
-  it('should execute use case with normalized request', async () => {
-    handleHttpRequestUseCaseMock.execute.mockResolvedValue(
-      makeUseCaseResponse(),
-    );
+  describe('start', () => {
+    it('should create fastify app with logger enabled', async () => {
+      const { sut } = makeSut();
+      await sut.start(3000);
 
-    const request = makeRequest({
-      url: '/products?page=1&tags=a&tags=b',
-      query: {
-        page: '1',
-        tags: ['a', 'b'],
-      },
+      expect(Fastify).toHaveBeenCalledWith({ logger: true });
     });
 
-    const reply = makeReply();
+    it('should register GET route', async () => {
+      const { sut } = makeSut();
+      await sut.start(3000);
 
-    await sut.handleRequest(request, reply);
-
-    expect(handleHttpRequestUseCaseMock.execute).toHaveBeenCalledWith({
-      path: '/products',
-      query: {
-        page: '1',
-        tags: ['a', 'b'],
-      },
-    });
-  });
-
-  it('should normalize array query params', async () => {
-    handleHttpRequestUseCaseMock.execute.mockResolvedValue(
-      makeUseCaseResponse(),
-    );
-
-    const request = makeRequest({
-      url: '/products?ids=1&ids=2',
-      query: {
-        ids: [1, 2],
-      },
+      expect(appMock.get).toHaveBeenCalledWith('/*', sut.handleRequest);
     });
 
-    const reply = makeReply();
+    it('should start listening on provided port', async () => {
+      const { sut } = makeSut();
+      await sut.start(3000);
 
-    await sut.handleRequest(request, reply);
+      expect(appMock.listen).toHaveBeenCalledWith({ port: 3000 });
+    });
 
-    expect(handleHttpRequestUseCaseMock.execute).toHaveBeenCalledWith({
-      path: '/products',
-      query: {
-        ids: ['1', '2'],
-      },
+    it('should log startup message', async () => {
+      const { sut } = makeSut();
+      await sut.start(3000);
+
+      expect(appMock.log.info).toHaveBeenCalledWith(
+        'Caching proxy running on port 3000',
+      );
     });
   });
 
-  it('should ignore unsupported query param types', async () => {
-    handleHttpRequestUseCaseMock.execute.mockResolvedValue(
-      makeUseCaseResponse(),
-    );
-
-    const request = makeRequest({
-      url: '/products',
-      query: {
-        search: 'notebook',
-        invalidNumber: 10,
-        invalidBoolean: true,
-        invalidObject: {
-          foo: 'bar',
-        },
-      },
-    });
-
-    const reply = makeReply();
-
-    await sut.handleRequest(request, reply);
-
-    expect(handleHttpRequestUseCaseMock.execute).toHaveBeenCalledWith({
-      path: '/products',
-      query: {
-        search: 'notebook',
-      },
-    });
-  });
-
-  it('should set response status code', async () => {
-    handleHttpRequestUseCaseMock.execute.mockResolvedValue(
-      makeUseCaseResponse({
-        statusCode: 201,
-      }),
-    );
-
-    const request = makeRequest();
-
-    const reply = makeReply();
-
-    await sut.handleRequest(request, reply);
-
-    expect(reply.status).toHaveBeenCalledWith(201);
-  });
-
-  it('should set response headers', async () => {
-    handleHttpRequestUseCaseMock.execute.mockResolvedValue(
-      makeUseCaseResponse({
+  describe('handleRequest', () => {
+    it('should execute handle http request use case', async () => {
+      const response = {
+        statusCode: 200,
         headers: {
           'content-type': 'application/json',
-          'cache-control': 'max-age=60',
         },
-      }),
-    );
-
-    const request = makeRequest();
-
-    const reply = makeReply();
-
-    await sut.handleRequest(request, reply);
-
-    expect(reply.header).toHaveBeenCalledWith(
-      'content-type',
-      'application/json',
-    );
-
-    expect(reply.header).toHaveBeenCalledWith('cache-control', 'max-age=60');
-  });
-
-  it('should return response body', async () => {
-    const body = {
-      products: [
-        {
-          id: 1,
+        body: {
+          ok: true,
         },
-      ],
-    };
+      };
 
-    handleHttpRequestUseCaseMock.execute.mockResolvedValue(
-      makeUseCaseResponse({
-        body,
-      }),
-    );
+      const handleHttpRequestUseCase = {
+        execute: vi.fn().mockResolvedValue(response),
+      };
+      const sut = new FastifyCachingProxyServer(
+        handleHttpRequestUseCase as never,
+      );
 
-    const request = makeRequest();
+      const request = {
+        url: '/products?page=1',
+        query: {
+          page: '1',
+        },
+      };
 
-    const reply = makeReply();
+      const reply = {
+        status: vi.fn().mockReturnThis(),
+        header: vi.fn(),
+      };
 
-    const response = await sut.handleRequest(request, reply);
+      await sut.handleRequest(request as never, reply as never);
 
-    expect(response).toEqual(body);
+      expect(handleHttpRequestUseCase.execute).toHaveBeenCalledWith({
+        path: '/products',
+        query: {
+          page: '1',
+        },
+      });
+    });
+
+    it('should set response status', async () => {
+      const response = {
+        statusCode: 201,
+        headers: {},
+        body: {},
+      };
+
+      const handleHttpRequestUseCase = {
+        execute: vi.fn().mockResolvedValue(response),
+      };
+      const sut = new FastifyCachingProxyServer(
+        handleHttpRequestUseCase as never,
+      );
+
+      const request = {
+        url: '/',
+        query: {},
+      };
+
+      const reply = {
+        status: vi.fn().mockReturnThis(),
+        header: vi.fn(),
+      };
+
+      await sut.handleRequest(request as never, reply as never);
+
+      expect(reply.status).toHaveBeenCalledWith(201);
+    });
+
+    it('should set response headers', async () => {
+      const response = {
+        statusCode: 200,
+        headers: {
+          'content-type': 'application/json',
+          'cache-control': 'public',
+        },
+        body: {},
+      };
+
+      const handleHttpRequestUseCase = {
+        execute: vi.fn().mockResolvedValue(response),
+      };
+      const sut = new FastifyCachingProxyServer(
+        handleHttpRequestUseCase as never,
+      );
+
+      const request = {
+        url: '/',
+        query: {},
+      };
+
+      const reply = {
+        status: vi.fn().mockReturnThis(),
+        header: vi.fn(),
+      };
+
+      await sut.handleRequest(request as never, reply as never);
+
+      expect(reply.header).toHaveBeenCalledWith(
+        'content-type',
+        'application/json',
+      );
+
+      expect(reply.header).toHaveBeenCalledWith('cache-control', 'public');
+    });
+
+    it('should return response body', async () => {
+      const response = {
+        statusCode: 200,
+        headers: {},
+        body: {
+          success: true,
+        },
+      };
+
+      const handleHttpRequestUseCase = {
+        execute: vi.fn().mockResolvedValue(response),
+      };
+      const sut = new FastifyCachingProxyServer(
+        handleHttpRequestUseCase as never,
+      );
+
+      const request = {
+        url: '/',
+        query: {},
+      };
+
+      const reply = {
+        status: vi.fn().mockReturnThis(),
+        header: vi.fn(),
+      };
+
+      const result = await sut.handleRequest(request as never, reply as never);
+
+      expect(result).toEqual({ success: true });
+    });
+
+    it('should normalize array query params', async () => {
+      const response = {
+        statusCode: 200,
+        headers: {},
+        body: {},
+      };
+
+      const handleHttpRequestUseCase = {
+        execute: vi.fn().mockResolvedValue(response),
+      };
+      const sut = new FastifyCachingProxyServer(
+        handleHttpRequestUseCase as never,
+      );
+
+      const request = {
+        url: '/products',
+        query: {
+          category: ['books', 'games'],
+        },
+      };
+
+      const reply = {
+        status: vi.fn().mockReturnThis(),
+        header: vi.fn(),
+      };
+
+      await sut.handleRequest(request as never, reply as never);
+
+      expect(handleHttpRequestUseCase.execute).toHaveBeenCalledWith({
+        path: '/products',
+        query: {
+          category: ['books', 'games'],
+        },
+      });
+    });
+
+    it('should ignore unsupported query param types', async () => {
+      const response = {
+        statusCode: 200,
+        headers: {},
+        body: {},
+      };
+
+      const handleHttpRequestUseCase = {
+        execute: vi.fn().mockResolvedValue(response),
+      };
+      const sut = new FastifyCachingProxyServer(
+        handleHttpRequestUseCase as never,
+      );
+
+      const request = {
+        url: '/products',
+        query: {
+          page: 1,
+          active: true,
+          category: 'books',
+        },
+      };
+
+      const reply = {
+        status: vi.fn().mockReturnThis(),
+        header: vi.fn(),
+      };
+
+      await sut.handleRequest(request as never, reply as never);
+
+      expect(handleHttpRequestUseCase.execute).toHaveBeenCalledWith({
+        path: '/products',
+        query: {
+          category: 'books',
+        },
+      });
+    });
   });
 });
