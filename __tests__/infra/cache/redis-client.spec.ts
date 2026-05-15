@@ -16,6 +16,7 @@ vi.mock('../../../src/config/env.js', () => {
   return {
     env: {
       REDIS_URL: 'redis://localhost:6379',
+      CACHE_DEFAULT_TTL: 60,
     },
   };
 });
