@@ -22,7 +22,7 @@ export class HandleHttpRequestUseCase {
 
     const response = await this.httpClient.get(request);
 
-    const policy = this.cachePolicy.for(request);
+    const policy = this.cachePolicy.resolve(request);
     if (policy.skipIf?.(response))
       return this.withCacheHeader(response, 'MISS');
 

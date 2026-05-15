@@ -4,6 +4,6 @@ import { CacheSetOptions } from '../../src/application/ports/output/cache-set-op
 
 export function createCachePolicyMock() {
   return {
-    for: vi.fn<(request: HttpRequest) => CacheSetOptions<HttpResponse>>(),
+    resolve: vi.fn<(request: HttpRequest) => CacheSetOptions<HttpResponse>>(),
   };
 }

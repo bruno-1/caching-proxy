@@ -7,7 +7,7 @@ export class DefaultCachePolicy implements CachePolicy<HttpResponse> {
   constructor(private readonly config: CacheConfig) {}
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  for(_request: HttpRequest): CacheSetOptions<HttpResponse> {
+  resolve(_request: HttpRequest): CacheSetOptions<HttpResponse> {
     const ttlSeconds = this.config.defaultTTLSeconds;
 
     return {

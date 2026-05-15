@@ -56,7 +56,7 @@ describe('HandleHttpRequestUseCase', () => {
       skipIf: () => boolean;
     }>,
   ) => {
-    vi.mocked(ctx.cachePolicy.for).mockReturnValue(policy as never);
+    vi.mocked(ctx.cachePolicy.resolve).mockReturnValue(policy as never);
   };
 
   const arrangeHttpResponse = (response: {

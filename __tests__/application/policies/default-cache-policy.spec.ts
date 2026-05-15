@@ -3,7 +3,7 @@ import { DefaultCachePolicy } from '../../../src/application/policies/default-ca
 
 const makeSut = (ttl = 60) => {
   const policy = new DefaultCachePolicy({ defaultTTLSeconds: ttl });
-  const rule = policy.for({ path: '/products' });
+  const rule = policy.resolve({ path: '/products' });
 
   return { policy, rule };
 };
