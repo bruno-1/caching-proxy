@@ -1,0 +1,38 @@
+services:
+  redis:
+    image: redis:8.6.3-alpine
+    container_name: caching-proxy-redis
+    ports:
+      - '6379:6379'
+
+  wiremock:
+    image: wiremock/wiremock:main-alpine
+    container_name: caching-proxy-wiremock
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./docker/wiremock:/home/wiremock
+
+  app:
+    build: .
+    container_name: caching-proxy-app
+    depends_on:
+      - redis
+      - wiremock
+    environment:
+      REDIS_URL: redis://redis:6379
+      CACHING_DEFAULT_TTL: 60
+    command:
+      [
+        'npm',
+        'run',
+        'start',
+        '--',
+        'start',
+        '--port',
+        '3000',
+        '--origin',
+        'http://wiremock:8080',
+      ]
+    ports:
+      - '3000:3000'
