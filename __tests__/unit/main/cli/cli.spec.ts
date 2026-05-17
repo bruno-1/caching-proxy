@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { safeParseCliArgs } from '../../../src/main/cli/safe-parse-cli-args.js';
-import { CliParseError } from '../../../src/main/cli/errors/cli-parse.error.js';
+import { safeParseCliArgs } from '../../../../src/main/cli/safe-parse-cli-args.js';
+import { CliParseError } from '../../../../src/main/cli/errors/cli-parse.error.js';
 
 describe('CLI - parseCliArgs', () => {
   const baseArgs = ['node', 'caching-proxy'];

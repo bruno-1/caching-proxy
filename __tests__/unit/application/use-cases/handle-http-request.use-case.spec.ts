@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { HandleHttpRequestUseCase } from '../../../src/application/use-cases/handle-http-request.use-case.js';
+import { HandleHttpRequestUseCase } from '../../../../src/application/use-cases/handle-http-request.use-case.js';
 import { createCacheMock } from '../../factories/cache-mock.js';
 import { createHttpClientMock } from '../../factories/http-client-mock.js';
 import { createCacheKeyBuilderMock } from '../../factories/cache-key-builder-mock.js';
 import { createCachePolicyMock } from '../../factories/cache-policy-mock.js';
-import { CacheSetOptions } from '../../../src/application/ports/output/cache-set-options.js';
+import { CacheSetOptions } from '../../../../src/application/ports/output/cache-set-options.js';
 
 const PATH = '/products';
 const CACHE_KEY = 'cache-key';

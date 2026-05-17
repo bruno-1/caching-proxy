@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createRedisClientMock } from '../../factories/create-redis-client-mock.js';
-import { RedisCacheService } from '../../../src/infra/cache/redis-cache-service.js';
+import { RedisCacheService } from '../../../../src/infra/cache/redis-cache-service.js';
 
 describe('RedisCacheService', () => {
   let redisClientMock: ReturnType<typeof createRedisClientMock>;

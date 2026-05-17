@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { FastifyCachingProxyServer } from '../../../src/infra/http/fastify-caching-proxy-server.js';
+import { FastifyCachingProxyServer } from '../../../../src/infra/http/fastify-caching-proxy-server.js';
 
 const appMock = {
   get: vi.fn(),
@@ -17,7 +17,10 @@ function makeSut() {
     execute: vi.fn(),
   };
 
-  const sut = new FastifyCachingProxyServer(handleHttpRequestUseCase as never);
+  const sut = new FastifyCachingProxyServer(
+    Fastify({ logger: true }),
+    handleHttpRequestUseCase as never,
+  );
 
   return {
     sut,
@@ -78,6 +81,7 @@ describe('FastifyCachingProxyServer', () => {
         execute: vi.fn().mockResolvedValue(response),
       };
       const sut = new FastifyCachingProxyServer(
+        Fastify(),
         handleHttpRequestUseCase as never,
       );
 
@@ -114,6 +118,7 @@ describe('FastifyCachingProxyServer', () => {
         execute: vi.fn().mockResolvedValue(response),
       };
       const sut = new FastifyCachingProxyServer(
+        Fastify(),
         handleHttpRequestUseCase as never,
       );
 
@@ -146,6 +151,7 @@ describe('FastifyCachingProxyServer', () => {
         execute: vi.fn().mockResolvedValue(response),
       };
       const sut = new FastifyCachingProxyServer(
+        Fastify(),
         handleHttpRequestUseCase as never,
       );
 
@@ -182,6 +188,7 @@ describe('FastifyCachingProxyServer', () => {
         execute: vi.fn().mockResolvedValue(response),
       };
       const sut = new FastifyCachingProxyServer(
+        Fastify(),
         handleHttpRequestUseCase as never,
       );
 
@@ -211,6 +218,7 @@ describe('FastifyCachingProxyServer', () => {
         execute: vi.fn().mockResolvedValue(response),
       };
       const sut = new FastifyCachingProxyServer(
+        Fastify(),
         handleHttpRequestUseCase as never,
       );
 
@@ -247,6 +255,7 @@ describe('FastifyCachingProxyServer', () => {
         execute: vi.fn().mockResolvedValue(response),
       };
       const sut = new FastifyCachingProxyServer(
+        Fastify({ logger: true }),
         handleHttpRequestUseCase as never,
       );
 

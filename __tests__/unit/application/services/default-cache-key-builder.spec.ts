@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DefaultCacheKeyBuilder } from '../../../src/application/services/default-cache-key-builder.js';
+import { DefaultCacheKeyBuilder } from '../../../../src/application/services/default-cache-key-builder.js';
 
 const makeSut = () => new DefaultCacheKeyBuilder();
 

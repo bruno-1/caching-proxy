@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { InvalidArgumentError } from 'commander';
-import { parsePort, parseUrl } from '../../../src/main/cli/parsers.js';
+import { parsePort, parseUrl } from '../../../../src/main/cli/parsers.js';
 
 describe('CLI parsers', () => {
   describe('parsePort', () => {

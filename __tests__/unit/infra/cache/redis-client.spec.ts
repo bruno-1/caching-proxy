@@ -12,11 +12,11 @@ vi.mock('redis', () => {
   };
 });
 
-vi.mock('../../../src/config/env.js', () => {
+vi.mock('../../../../src/config/env.js', () => {
   return {
     env: {
       REDIS_URL: 'redis://localhost:6379',
-      CACHE_DEFAULT_TTL: 60,
+      CACHE_DEFAULT_TTL: '60',
     },
   };
 });
@@ -30,7 +30,7 @@ describe('makeRedisClient', () => {
     const { createClient } = await import('redis');
 
     const { makeRedisClient } =
-      await import('../../../src/infra/cache/redis-client.js');
+      await import('../../../../src/infra/cache/redis-client.js');
 
     await makeRedisClient();
 
@@ -46,7 +46,7 @@ describe('makeRedisClient', () => {
     const { createClient } = await import('redis');
 
     const { makeRedisClient } =
-      await import('../../../src/infra/cache/redis-client.js');
+      await import('../../../../src/infra/cache/redis-client.js');
 
     await makeRedisClient();
 
@@ -67,7 +67,7 @@ describe('makeRedisClient', () => {
 
   it('registers redis error listener', async () => {
     const { makeRedisClient } =
-      await import('../../../src/infra/cache/redis-client.js');
+      await import('../../../../src/infra/cache/redis-client.js');
 
     await makeRedisClient();
 
@@ -76,7 +76,7 @@ describe('makeRedisClient', () => {
 
   it('connects redis client', async () => {
     const { makeRedisClient } =
-      await import('../../../src/infra/cache/redis-client.js');
+      await import('../../../../src/infra/cache/redis-client.js');
 
     await makeRedisClient();
 
@@ -87,7 +87,7 @@ describe('makeRedisClient', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const { makeRedisClient } =
-      await import('../../../src/infra/cache/redis-client.js');
+      await import('../../../../src/infra/cache/redis-client.js');
 
     await makeRedisClient();
 
@@ -106,7 +106,7 @@ describe('makeRedisClient', () => {
 
   it('connects redis client', async () => {
     const { makeRedisClient } =
-      await import('../../../src/infra/cache/redis-client.js');
+      await import('../../../../src/infra/cache/redis-client.js');
 
     await makeRedisClient();
 

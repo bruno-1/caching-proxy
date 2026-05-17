@@ -1,20 +1,23 @@
-import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
+import {
+  type FastifyInstance,
+  type FastifyReply,
+  type FastifyRequest,
+} from 'fastify';
 import type { CachingProxyServer } from '../../application/ports/output/caching-proxy-server.js';
 import type { HandleHttpRequestUseCase } from '../../application/use-cases/handle-http-request.use-case.js';
 
 export class FastifyCachingProxyServer implements CachingProxyServer {
   constructor(
+    private readonly app: FastifyInstance,
     private readonly handleHttpRequestUseCase: HandleHttpRequestUseCase,
   ) {}
 
   async start(port: number) {
-    const app = Fastify({ logger: true });
+    this.app.get('/*', this.handleRequest);
 
-    app.get('/*', this.handleRequest);
+    await this.app.listen({ port });
 
-    await app.listen({ port });
-
-    app.log.info(`Caching proxy running on port ${port}`);
+    this.app.log.info(`Caching proxy running on port ${port}`);
   }
 
   handleRequest = async (request: FastifyRequest, reply: FastifyReply) => {

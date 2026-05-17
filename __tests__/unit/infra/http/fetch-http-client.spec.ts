@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { FetchHttpClient } from '../../../src/infra/http/fetch-http-client.js';
-import { HttpRequest } from '../../../src/application/ports/http.js';
+import { FetchHttpClient } from '../../../../src/infra/http/fetch-http-client.js';
+import { HttpRequest } from '../../../../src/application/ports/http.js';
 
 describe('FetchHttpClient', () => {
   const origin = 'http://dummyjson.com';

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DefaultCachePolicy } from '../../../src/application/policies/default-cache-policy.js';
+import { DefaultCachePolicy } from '../../../../src/application/policies/default-cache-policy.js';
 
 const makeSut = (ttl = 60) => {
   const policy = new DefaultCachePolicy({ defaultTTLSeconds: ttl });

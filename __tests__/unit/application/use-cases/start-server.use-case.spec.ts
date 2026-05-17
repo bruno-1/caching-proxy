@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CachingProxyServer } from '../../../src/application/ports/output/caching-proxy-server.js';
-import { StartServerUseCase } from '../../../src/application/use-cases/start-server.use-case.js';
-import { InvalidPortError } from '../../../src/domain/errors/invalid-port.error.js';
-import { InvalidOriginUrlError } from '../../../src/domain/errors/invalid-origin-url.error.js';
-import { StartServerInput } from '../../../src/application/ports/input/start-server-input.js';
+import type { CachingProxyServer } from '../../../../src/application/ports/output/caching-proxy-server.js';
+import { StartServerUseCase } from '../../../../src/application/use-cases/start-server.use-case.js';
+import { InvalidPortError } from '../../../../src/domain/errors/invalid-port.error.js';
+import { InvalidOriginUrlError } from '../../../../src/domain/errors/invalid-origin-url.error.js';
+import { StartServerInput } from '../../../../src/application/ports/input/start-server-input.js';
 
 describe('StartServerUseCase', () => {
   let server: CachingProxyServer;
