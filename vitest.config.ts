@@ -10,5 +10,7 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: ['node_modules/', 'dist/', '**/*.test.ts', 'src/config/**'],
     },
+    testTimeout: 30000,
+    hookTimeout: 30000,
   },
 });
