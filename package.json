@@ -22,6 +22,8 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run __tests__/integration",
     "test:integration:watch": "vitest __tests__/integration",
+    "test:e2e": "vitest run __tests__/e2e",
+    "test:e2e:watch": "vitest __tests__/e2e",
     "prepare": "husky"
   },
   "devDependencies": {
