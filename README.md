@@ -1,6 +1,6 @@
 # caching-proxy
 
-A high-performance HTTP caching proxy server built with TypeScript, Fastify, and Redis.
+A CLI HTTP caching proxy server built with TypeScript, Fastify, and Redis.
 
 This project is based on the roadmap.sh challenge:
 
@@ -10,49 +10,58 @@ https://roadmap.sh/projects/caching-server
 
 # 🚀 Overview
 
-`caching-proxy` is a CLI application that starts an HTTP proxy server capable of forwarding requests to an origin server while caching responses in Redis.
+`caching-proxy` is a command-line application capable of:
 
-When the same request is made multiple times, the proxy returns the cached response instead of forwarding the request again to the origin server.
+- starting an HTTP proxy server
+- forwarding requests to an origin server
+- caching responses in Redis
+- returning cached responses for repeated requests
+- exposing cache HIT/MISS metadata through HTTP headers
+- clearing all cached entries through CLI commands
 
-The proxy also adds the `X-Cache` header to indicate whether the response came from the cache or the origin server.
+The application was designed following Clean Architecture principles with a strong separation between:
 
-Example:
-
-```http
-X-Cache: HIT
-```
-
-```http
-X-Cache: MISS
-```
-
-The project was designed using Clean Architecture principles with strong separation between business rules, application use cases, infrastructure, and composition layers.
+- domain rules
+- application use cases
+- infrastructure adapters
+- composition/bootstrap layer
 
 ---
 
-# ✨ Features
+# ✨ Implemented Features
 
-## Core Features
+## Proxy Features
 
-- HTTP caching proxy server
-- Redis-based cache storage
-- Configurable TTL cache expiration
-- Cache HIT/MISS response headers
-- CLI interface
+- HTTP proxy server using Fastify
 - Request forwarding to origin servers
-- Cache clearing command
+- Support for GET requests
+- Response header preservation
+- Query parameter normalization
+- Array query parameter support
+- Cache HIT/MISS response headers
 
 ---
 
 ## Cache Features
 
+- Redis-based cache storage
+- Configurable TTL expiration
 - Deterministic cache key generation
-- Query parameter normalization
-- Array query parameter support
-- Tag-based cache invalidation
-- Graceful Redis failure fallback
-- Automatic Redis reconnect strategy
-- Prevents caching `5xx` responses
+- Graceful Redis fallback behavior
+- Redis reconnect strategy
+- Tag-based cache invalidation support
+- Automatic skip for `5xx` responses
+- Cache clear command
+
+---
+
+## CLI Features
+
+- `start` command
+- `clear-cache` command
+- Port validation
+- URL validation
+- Safe CLI error handling
 
 ---
 
@@ -60,39 +69,34 @@ The project was designed using Clean Architecture principles with strong separat
 
 - Clean Architecture
 - SOLID principles
-- Fully typed with TypeScript
-- Unit tests
-- Integration tests
 - Dependency inversion
-- Value Objects for validation
-- Structured logging
-- ESLint + Prettier
-- Husky Git hooks
+- Value Objects
+- Type-safe codebase
+- Unit tests
+- ESLint
+- Prettier
+- Husky pre-commit hooks
 
 ---
 
 # 🧰 Tech Stack
 
-| Technology     | Purpose                |
-| -------------- | ---------------------- |
-| TypeScript     | Main language          |
-| Node.js 20+    | Runtime                |
-| Fastify        | HTTP server            |
-| Redis          | Cache storage          |
-| Commander      | CLI parsing            |
-| Vitest         | Testing                |
-| Testcontainers | Integration testing    |
-| Zod            | Environment validation |
-| ESLint         | Linting                |
-| Prettier       | Code formatting        |
-| Husky          | Git hooks              |
-| Docker Compose | Local infrastructure   |
+| Technology  | Purpose                |
+| ----------- | ---------------------- |
+| TypeScript  | Main language          |
+| Node.js 20+ | Runtime                |
+| Fastify     | HTTP server            |
+| Redis       | Cache storage          |
+| Commander   | CLI parsing            |
+| Vitest      | Testing                |
+| Zod         | Environment validation |
+| ESLint      | Linting                |
+| Prettier    | Formatting             |
+| Husky       | Git hooks              |
 
 ---
 
 # 🏛️ Architecture
-
-This project follows Clean Architecture principles.
 
 ```text
 src
@@ -128,14 +132,14 @@ src
 
 ## Domain Layer
 
-Contains enterprise business rules and validations.
+Contains core business validations and rules.
 
 ### Value Objects
 
 - `Port`
 - `OriginUrl`
 
-### Domain Errors
+### Errors
 
 - `InvalidPortError`
 - `InvalidOriginUrlError`
@@ -144,9 +148,9 @@ Contains enterprise business rules and validations.
 
 ## Application Layer
 
-Contains use cases, policies, abstractions, and application business rules.
+Contains use cases, abstractions, services, and cache policies.
 
-### Main Use Cases
+### Use Cases
 
 - `HandleHttpRequestUseCase`
 - `StartServerUseCase`
@@ -154,9 +158,8 @@ Contains use cases, policies, abstractions, and application business rules.
 
 ### Services & Policies
 
-- cache key builder
-- cache policy
-- cache configuration
+- `DefaultCacheKeyBuilder`
+- `DefaultCachePolicy`
 
 ### Ports
 
@@ -168,23 +171,27 @@ Contains use cases, policies, abstractions, and application business rules.
 
 ## Infrastructure Layer
 
-Contains framework implementations and external integrations.
+Contains external implementations.
 
 ### HTTP
 
-- Fastify proxy server
-- Fetch HTTP client
+- `FastifyCachingProxyServer`
+- `FetchHttpClient`
 
 ### Cache
 
-- Redis cache service
+- `RedisCacheService`
 - Redis client factory
 
 ---
 
 ## Main Layer
 
-Responsible for dependency injection and application bootstrap.
+Responsible for:
+
+- dependency composition
+- CLI bootstrap
+- application startup
 
 ---
 
@@ -197,7 +204,7 @@ REDIS_URL=redis://localhost:6379
 CACHE_DEFAULT_TTL=60
 ```
 
-Or copy the example file:
+Or copy the example:
 
 ```bash
 cp .env.example .env
@@ -233,37 +240,9 @@ npm install
 
 ---
 
-# 🐳 Running Infrastructure
-
-## Using Docker Compose
-
-Start all infrastructure services:
-
-```bash
-docker compose up -d
-```
-
-Stop containers:
-
-```bash
-docker compose down
-```
-
----
-
-## Services
-
-The Docker Compose setup includes:
-
-- Redis
-- Wiremock
-- Application infrastructure
-
----
-
 # ▶️ Running the Project
 
-## Development mode
+## Development
 
 ```bash
 npm run start:dev
@@ -271,7 +250,7 @@ npm run start:dev
 
 ---
 
-## Production mode
+## Production
 
 Build the project:
 
@@ -279,7 +258,7 @@ Build the project:
 npm run build
 ```
 
-Start the application:
+Run the proxy:
 
 ```bash
 npm start -- start \
@@ -297,9 +276,7 @@ npm start -- start \
 caching-proxy start --port <number> --origin <url>
 ```
 
----
-
-## Parameters
+### Parameters
 
 | Parameter  | Description                          |
 | ---------- | ------------------------------------ |
@@ -324,25 +301,25 @@ caching-proxy start \
 caching-proxy clear-cache
 ```
 
-This command clears the Redis cache database.
+This command clears the Redis database used by the application.
 
 ---
 
-# 🌐 How the Proxy Works
+# 🌐 Proxy Flow
 
-If the proxy server runs on:
+If the proxy server is running on:
 
 ```text
 http://localhost:3000
 ```
 
-And the origin server is:
+And the configured origin server is:
 
 ```text
 http://dummyjson.com
 ```
 
-A request like:
+A request such as:
 
 ```http
 GET /products?page=1
@@ -354,11 +331,11 @@ Will be forwarded to:
 GET http://dummyjson.com/products?page=1
 ```
 
-The response is:
+The response will:
 
-1. Returned to the client
-2. Cached in Redis
-3. Tagged with cache metadata headers
+1. be returned to the client
+2. be cached in Redis
+3. receive cache metadata headers
 
 ---
 
@@ -366,7 +343,7 @@ The response is:
 
 ## Cache MISS
 
-Returned when the request is forwarded to the origin server.
+Returned when the request reaches the origin server.
 
 ```http
 X-Cache: MISS
@@ -376,7 +353,7 @@ X-Cache: MISS
 
 ## Cache HIT
 
-Returned when the response comes directly from Redis.
+Returned when the response comes from Redis.
 
 ```http
 X-Cache: HIT
@@ -386,14 +363,14 @@ X-Cache: HIT
 
 # 🔑 Cache Key Strategy
 
-Cache keys are normalized to guarantee deterministic caching.
+The application uses normalized cache keys to guarantee deterministic caching.
 
-The following rules are applied:
+Normalization rules:
 
 - trailing slash normalization
 - alphabetical query sorting
 - repeated query parameter support
-- undefined query parameter removal
+- undefined query removal
 - empty string preservation
 
 ---
@@ -407,7 +384,7 @@ Both requests below generate the same cache key:
 /products?a=1&b=2
 ```
 
-Generated cache key:
+Generated key:
 
 ```text
 /products?a=1&b=2
@@ -417,7 +394,7 @@ Generated cache key:
 
 ## Array Query Parameters
 
-The proxy supports repeated query parameters:
+Supported format:
 
 ```text
 /products?category=books&category=games
@@ -427,14 +404,16 @@ The proxy supports repeated query parameters:
 
 # ⏱️ Cache Policy
 
-The default cache policy:
+Default behavior:
 
 - applies configurable TTL
-- skips caching server errors (`5xx`)
+- skips caching responses with status `>= 500`
 
 ---
 
 ## Cached Responses
+
+Examples:
 
 - `200`
 - `201`
@@ -456,8 +435,6 @@ statusCode >= 500
 
 The Redis cache implementation supports tag associations.
 
----
-
 ## Example
 
 ```ts
@@ -466,9 +443,7 @@ await cache.set('product:1', product, {
 });
 ```
 
----
-
-## Invalidate Tag
+Invalidate a tag:
 
 ```ts
 await cache.invalidateTag('products');
@@ -476,7 +451,7 @@ await cache.invalidateTag('products');
 
 This removes:
 
-- all keys associated with the tag
+- all cache keys associated with the tag
 - the Redis tag reference set
 
 ---
@@ -488,15 +463,15 @@ Implemented Redis capabilities:
 - JSON serialization
 - TTL expiration
 - Redis pipelines (`MULTI`)
-- tag invalidation
 - reconnect strategy
-- graceful cache fallback
+- graceful fallback behavior
+- tag invalidation support
 
 ---
 
-## Redis Reconnect Strategy
+## Reconnect Strategy
 
-Reconnect delay grows progressively until reaching a maximum delay of `500ms`.
+Reconnect delay grows progressively until reaching `500ms`.
 
 Example:
 
@@ -512,29 +487,21 @@ retry 20 -> 500ms
 
 The HTTP layer is implemented using Fastify.
 
----
+Current behavior:
 
-## Current Behavior
-
-- handles `GET` requests
+- handles GET requests
 - forwards requests to the origin server
 - normalizes query parameters
 - supports repeated query params
 - preserves response headers
-- adds cache headers
-- structured logging enabled
+- injects cache metadata headers
+- enables structured logging
 
 ---
 
 # 🧪 Testing
 
-The project includes both unit and integration tests.
-
----
-
-## Unit Tests
-
-Run unit tests:
+## Run Unit Tests
 
 ```bash
 npm run test:unit
@@ -542,26 +509,7 @@ npm run test:unit
 
 ---
 
-## Integration Tests
-
-Run integration tests:
-
-```bash
-npm run test:integration
-```
-
-Integration tests use:
-
-- Testcontainers
-- Redis containers
-- Real Redis communication
-- End-to-end cache behavior validation
-
----
-
-## Coverage
-
-Generate test coverage:
+## Generate Coverage
 
 ```bash
 npm run test:coverage
@@ -621,49 +569,29 @@ npm run format
 
 ## Git Hooks
 
-Husky + lint-staged run automatically before commits.
-
-Configured tasks include:
-
-- ESLint
-- Prettier
+Husky runs `lint-staged` before commits.
 
 ---
 
-# 📋 Current Status
+# 📋 Final Project Status
 
-## Implemented
+This project is complete and no further features are planned.
+
+Implemented scope:
 
 - CLI command parsing
 - application bootstrap
-- dependency composition
 - Fastify proxy server
 - Redis cache layer
-- cache policy system
 - cache key normalization
+- cache policy system
 - HTTP request forwarding
 - cache HIT/MISS handling
-- tag invalidation
-- Redis reconnect strategy
+- cache invalidation support
 - environment validation
-- unit tests
-- integration tests
-- Docker Compose setup
+- unit testing structure
+- Redis infrastructure integration
 - structured logging
-
----
-
-## Possible Future Improvements
-
-- support additional HTTP methods
-- cache invalidation by route/pattern
-- metrics collection
-- distributed tracing
-- health checks
-- multiple cache strategy implementations
-- distributed cache support
-- request deduplication
-- stale-while-revalidate strategy
 
 ---
 
